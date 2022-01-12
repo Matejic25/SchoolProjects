@@ -1,2 +1,4 @@
-# SchoolProjects
-This repository contains projects from school that I work on.
+## Projects:
+### 1. Hotel room reservation
+  - Python :snake:
+  - MySQL :dolphin:
