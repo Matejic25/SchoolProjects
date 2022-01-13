@@ -65,7 +65,7 @@ def promeni_rasp_sobe(id_sobe, zahtev):
             return -1
 #
 #
-# print(promeni_rasp_sobe(7, 'oslobodi'))
+# print(promeni_rasp_sobe(3, 'zauzmi'))
 
 
 
@@ -88,9 +88,12 @@ def provera_kapaciteta(id_sobe,osobe):
 def dodaj_rezervaciju(id_sobe, broj_osoba):
     if provera_kapaciteta(id_sobe, broj_osoba) is True:
         if promeni_rasp_sobe(id_sobe, "zauzmi") != "vec_zauzeta":
-            mycursor.execute("INSERT INTO rezervacija(id_sobe, datum_rezervacije, broj_osoba, zakazani_datum_pocetka, zakazani_datum_zavrsetka, realni_datum_pocetka, realni_datum_zavrsetka)"
-                             "VALUES (%s,'2020-5-15',%s,'2020-5-15','2020-5-25','2020-5-15','2020-5-25')", (id_sobe, broj_osoba))
-            print("Rezervacija dodata!")
+            mycursor.execute("INSERT INTO rezervacija(id_sobe, datum_rezervacije, broj_osoba,"
+                             " zakazani_datum_pocetka, zakazani_datum_zavrsetka,"
+                             " realni_datum_pocetka, realni_datum_zavrsetka)"
+                             "VALUES (%s,'2020-5-15',%s,'2020-5-15','2020-5-25','2020-5-15','2020-5-25')",
+                             (id_sobe, broj_osoba))
+            print("Rezervacija dodata.")
             br_rasp_u_kategoriji()
             connection.commit()
         else:
@@ -99,9 +102,49 @@ def dodaj_rezervaciju(id_sobe, broj_osoba):
         print("nema mesta u sobi!")
 
 
+# dodaj_rezervaciju(10, 2)
 
-# dodaj_rezervaciju(7, 2)
 
+def obrisi_rezervaciju(id_rezervacije):
+    id_sobe = None
+    mycursor.execute("SELECT id_sobe FROM rezervacija WHERE id_rezervacije=%s", id_rezervacije)
+    for i in mycursor:
+        id_sobe = i[0]
+    promeni_rasp_sobe(id_sobe, "oslobodi")
+    mycursor.execute("DELETE FROM rezervacija WHERE id_rezervacije=%s", id_rezervacije)
+    connection.commit()
+    print("Rezervacija obrisana.")
+
+# obrisi_rezervaciju(8)
+
+
+# ZAVISNOST RASPOLOZIVOSTI SOBE U ODNOSU NA TO DA LI JE id_sobe U rezervacija
+def raspolozivost_po_rezervacijama():
+    sobe = []
+    rezervisane = []
+    nerezervisane = []
+    mycursor.execute("SELECT id_sobe FROM sobe ORDER BY id_sobe DESC")
+    for i in mycursor:
+        sobe.append(i[0])
+    mycursor.execute("SELECT id_sobe FROM rezervacija ORDER BY id_sobe DESC")
+    for i in mycursor:
+        rezervisane.append(i[0])
+    for soba in sobe:
+        if soba in sobe and soba not in rezervisane:
+            nerezervisane.append(soba)
+        else:
+            for rezervisana in rezervisane:
+                mycursor.execute("UPDATE sobe SET raspoloziva = 0 WHERE id_sobe = %s", rezervisana)
+    for soba in nerezervisane:
+        mycursor.execute("UPDATE sobe SET raspoloziva = 1 WHERE id_sobe = %s", soba)
+    br_rasp_u_kategoriji()
+    connection.commit()
+    # print(nerezervisane)
+    print("Nerezervisane oslobodjene.")
+    print("Rezervisane zauzete.")
+
+
+# raspolozivost_po_rezervacijama()
 
 # DODAVANJE U TABELU OSOBE_U_REZERVACIJI I ISPIS REDOVA
 # mycursor.execute("INSERT INTO osobe_u_rezervaciji(kontakt_osoba, telefon) VALUES "
