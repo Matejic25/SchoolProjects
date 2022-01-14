@@ -42,6 +42,7 @@ def zauzmi_oslobodi_sobu(id_sobe, zahtev):
             mycursor.execute("SELECT raspoloziva FROM sobe WHERE id_sobe = %s", id_sobe)
             for j in mycursor:
                 if j[0] == 0:
+                    print("Soba je vec zauzeta!")
                     return "vec_zauzeta"
                 else:
                     mycursor.execute("UPDATE sobe SET raspoloziva = 0 WHERE id_sobe = %s", id_sobe)
@@ -52,6 +53,7 @@ def zauzmi_oslobodi_sobu(id_sobe, zahtev):
             mycursor.execute("SELECT raspoloziva FROM sobe WHERE id_sobe = %s", id_sobe)
             for j in mycursor:
                 if j[0] == 1:
+                    print("Soba je vec slobodna!")
                     return "vec_slobodna"
                 else:
                     mycursor.execute("UPDATE sobe SET raspoloziva = 1 WHERE id_sobe = %s", id_sobe)
@@ -68,6 +70,7 @@ def provera_kapaciteta(id_sobe, osobe):
                      "FROM sobe AS s LEFT JOIN kategorija_sobe AS k "
                      "ON s.id_kategorije = k.id_kategorije WHERE s.id_sobe = %s", id_sobe)
     kapacitet = mycursor.fetchone()[0]
+    print(f"Ova soba poseduje {kapacitet} kreveta")
     return osobe <= kapacitet
 
 
@@ -75,11 +78,13 @@ def provera_kapaciteta(id_sobe, osobe):
 # ako je soba zauzeta tokom zeljenog termina vraca False
 # ako je soba slobodna tokom zeljenog termina vraca True
 def proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka):
-    mycursor.execute("SELECT id_rezervacije, zakazani_datum_pocetka, zakazani_datum_zavrsetka FROM rezervacija"
-                     " WHERE zakazani_datum_pocetka BETWEEN %s"
-                     " AND %s AND id_sobe = %s OR zakazani_datum_zavrsetka BETWEEN"
-                     " %s AND %s AND id_sobe = %s"
-                     , (datum_pocetka, datum_zavrsetka, id_sobe, datum_pocetka, datum_zavrsetka, id_sobe))
+    mycursor.execute("SELECT id_rezervacije, zakazani_datum_pocetka, zakazani_datum_zavrsetka FROM rezervacija "
+                     "WHERE zakazani_datum_pocetka BETWEEN %s AND %s AND id_sobe = %s "
+                     "OR zakazani_datum_zavrsetka BETWEEN %s AND %s AND id_sobe = %s "
+                     "OR %s BETWEEN zakazani_datum_pocetka AND zakazani_datum_zavrsetka AND id_sobe = %s "
+                     "OR %s BETWEEN zakazani_datum_pocetka AND zakazani_datum_zavrsetka AND id_sobe = %s"
+                     , (datum_pocetka, datum_zavrsetka, id_sobe, datum_pocetka, datum_zavrsetka, id_sobe, datum_pocetka,
+                        id_sobe, datum_zavrsetka, id_sobe))
     rezultati = 0
     for i in mycursor:
         rezultati += 1
@@ -126,8 +131,8 @@ def dodaj_rezervaciju(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
             mycursor.execute("INSERT INTO rezervacija(id_sobe, datum_rezervacije, broj_osoba,"
                              " zakazani_datum_pocetka, zakazani_datum_zavrsetka,"
                              " realni_datum_pocetka, realni_datum_zavrsetka)"
-                             "VALUES (%s,'2020-5-15',%s,'2020-5-15','2020-5-25','2020-5-15','2020-5-25')",
-                             (id_sobe, broj_osoba))
+                             "VALUES (%s,'2020-5-15',%s,%s,%s,'2020-5-15','2020-5-25')",
+                             (id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka))
             print("Rezervacija dodata.")
             osvezi_raspolozive_u_kat()
             osvezi_raspolozivosti_soba()
@@ -145,3 +150,11 @@ def obrisi_rezervaciju(id_rezervacije):
     osvezi_raspolozive_u_kat()
     connection.commit()
     print("Rezervacija obrisana.")
+
+
+def sve_rezervacije():
+    mycursor.execute("SELECT * FROM rezervacija")
+    for rezervacija in mycursor:
+        for data in range(8):
+            print(rezervacija[data], end="       ")
+        print("\n")
