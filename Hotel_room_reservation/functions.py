@@ -8,6 +8,13 @@ connection = connect(host='localhost',
 mycursor = connection.cursor()
 
 
+def dodaj_gosta(broj_pasosa, ime, prezime):
+    mycursor.execute("INSERT INTO gosti(broj_pasosa, ime, prezime)"
+                     "VALUES (%s, %s, %s)", (broj_pasosa, ime, prezime))
+    connection.commit()
+    print(f"Gost {ime} {prezime} uspesno dodat.")
+
+
 # PROMENA BROJA RASPOLOZIVIH SOBA U KATEGORIJI (MENJA VREDNOST raspolozivo U TABELI kategorija_sobe)
 def osvezi_raspolozive_u_kat():
     lista3 = []
@@ -129,9 +136,8 @@ def dodaj_rezervaciju(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
                 zauzmi_oslobodi_sobu(id_sobe, "zauzmi") == "vec_zauzeta" and \
                 proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka) is True:
             mycursor.execute("INSERT INTO rezervacija(id_sobe, datum_rezervacije, broj_osoba,"
-                             " zakazani_datum_pocetka, zakazani_datum_zavrsetka,"
-                             " realni_datum_pocetka, realni_datum_zavrsetka)"
-                             "VALUES (%s,'2020-5-15',%s,%s,%s,'2020-5-15','2020-5-25')",
+                             " zakazani_datum_pocetka, zakazani_datum_zavrsetka)"
+                             "VALUES (%s,CURRENT_DATE(),%s,%s,%s)",
                              (id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka))
             print("Rezervacija dodata.")
             osvezi_raspolozive_u_kat()
@@ -158,3 +164,43 @@ def sve_rezervacije():
         for data in range(8):
             print(rezervacija[data], end="       ")
         print("\n")
+
+
+def prijava_rezervacije(broj_pasosa, id_sobe, telefon):
+    mycursor.execute("SELECT * FROM gosti WHERE broj_pasosa = %s", broj_pasosa)
+    id_gosta = None
+    id_rezervacije = None
+    ime = ""
+    prezime = ""
+    for i in mycursor:
+        id_gosta = i[0]
+        ime = i[2]
+        prezime = i[3]
+        for j in i:
+            print(j, end="           ")
+    mycursor.execute("SELECT id_rezervacije FROM rezervacija WHERE id_sobe = %s", id_sobe)
+    for i in mycursor:
+        print(i[0], "       ", telefon)
+        id_rezervacije = i[0]
+    if id_gosta is not None and id_rezervacije is not None:
+        mycursor.execute("INSERT INTO osobe_u_rezervaciji(id_gosta, kontakt_osoba, id_rezervacije, telefon)"
+                         " VALUES(%s, %s, %s, %s)", (id_gosta, broj_pasosa, id_rezervacije, telefon))
+        mycursor.execute("UPDATE rezervacija SET realni_datum_pocetka = CURRENT_DATE()"
+                         "WHERE id_rezervacije=%s", id_rezervacije)
+        connection.commit()
+        print(f"Rezervacija gosta {ime} {prezime} je uspesno prijavljena.")
+    else:
+        print("Nepravilno uneti podaci gosta")
+
+
+def odjava_rezervacije(id_rezervacije):
+    mycursor.execute("SELECT id_rezervacije FROM osobe_u_rezervaciji")
+    for i in mycursor:
+        if i[0] == id_rezervacije:
+            mycursor.execute("DELETE FROM osobe_u_rezervaciji WHERE id_rezervacije = %s", id_rezervacije)
+            mycursor.execute("UPDATE rezervacija SET realni_datum_zavrsetka = CURRENT_DATE()"
+                             "WHERE id_rezervacije=%s", id_rezervacije)
+            connection.commit()
+        else:
+            print("ID rezervacije nije pronadjen.")
+    print("Rezervacija uspesno odjavljena")
