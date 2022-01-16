@@ -10,7 +10,12 @@ CREATE TABLE `kategorija_sobe` (
   `ukupan_broj_soba` int NOT NULL,
   `raspolozivo` int NOT NULL,
   PRIMARY KEY (`id_kategorije`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO kategorija_sobe(broj_kreveta, apartman, pogled, cena, ukupan_broj_soba, raspolozivo)
+VALUES (4, 1, 'more', 100, 5, 5),
+       (2, 0, 'park', 80, 10, 10),
+       (3, 0, 'tereni', 60, 15, 15);
 
 CREATE TABLE `sobe` (
   `id_sobe` int NOT NULL AUTO_INCREMENT,
@@ -20,7 +25,7 @@ CREATE TABLE `sobe` (
   PRIMARY KEY (`id_sobe`),
   KEY `id_kategorije` (`id_kategorije`),
   CONSTRAINT `sobe_ibfk_1` FOREIGN KEY (`id_kategorije`) REFERENCES `kategorija_sobe` (`id_kategorije`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `rezervacija` (
   `id_rezervacije` int NOT NULL AUTO_INCREMENT,
@@ -34,7 +39,7 @@ CREATE TABLE `rezervacija` (
   PRIMARY KEY (`id_rezervacije`),
   KEY `id_sobe` (`id_sobe`),
   CONSTRAINT `rezervacija_ibfk_1` FOREIGN KEY (`id_sobe`) REFERENCES `sobe` (`id_sobe`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `gosti` (
   `id_gosta` int NOT NULL AUTO_INCREMENT,
@@ -43,7 +48,7 @@ CREATE TABLE `gosti` (
   `prezime` varchar(50) NOT NULL,
   PRIMARY KEY (`id_gosta`),
   UNIQUE KEY `broj_pasosa` (`broj_pasosa`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `osobe_u_rezervaciji` (
   `id_OuR` int NOT NULL AUTO_INCREMENT,
@@ -58,4 +63,4 @@ CREATE TABLE `osobe_u_rezervaciji` (
   CONSTRAINT `osobe_u_rezervaciji_ibfk_1` FOREIGN KEY (`kontakt_osoba`) REFERENCES `gosti` (`broj_pasosa`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `osobe_u_rezervaciji_ibfk_2` FOREIGN KEY (`id_gosta`) REFERENCES `gosti` (`id_gosta`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `osobe_u_rezervaciji_ibfk_3` FOREIGN KEY (`id_rezervacije`) REFERENCES `rezervacija` (`id_rezervacije`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
