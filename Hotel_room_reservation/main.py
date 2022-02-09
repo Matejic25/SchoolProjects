@@ -1,78 +1,78 @@
 from functions import *
 
 
-opcije = """
-        OPCIJE
+options = """
+        OPTIONS
         
-1   --- Dodaj gosta
-2   --- Provera kapaciteta sobe
-3   --- Proveri termine za sobu
-4   --- Osvezi raspolozivosti soba
-5   --- Zauzmi/Oslobodi sobu
-6   --- Dodaj rezervaciju
-7   --- Obrisi rezervaciju
-8   --- Uvid u rezervacije
-9   --- Prijava rezervacije
-10  --- Odjava rezervacije
-0   --- Izlaz"""
+1   --- Add guest
+2   --- Check room capacity
+3   --- Check occupied dates
+4   --- Refresh availability of the rooms
+5   --- Occupy/Free the room
+6   --- Add reservation
+7   --- Remove reservation
+8   --- View all reservations
+9   --- Check-in
+10  --- Checkout
+0   --- Exit"""
 
 while True:
-    print(opcije)
+    print(options)
     print("")
-    izabrana_opcija = input("Izaberi opciju: ")
-    if izabrana_opcija == '0':
+    chosen_option = input("Choose option: ")
+    if chosen_option == '0':
         break
-    elif izabrana_opcija == '1':
-        print("Dodaj gosta")
+    elif chosen_option == '1':
+        print("Add guest")
         broj_pasosa = int(input("Broj pasosa: "))
         ime = str(input("Ime: "))
         prezime = str(input("Prezime: "))
-        dodaj_gosta(broj_pasosa, ime, prezime)
-    elif izabrana_opcija == '2':
-        print("Provera kapaciteta sobe")
+        add_guest(broj_pasosa, ime, prezime)
+    elif chosen_option == '2':
+        print("Check room capacity")
         id_sobe = int(input("ID sobe: "))
         osobe = int(input("Broj osoba: "))
-        provera_kapaciteta(id_sobe, osobe)
-    elif izabrana_opcija == '3':
-        print("Proveri termine za sobu")
+        check_capacity(id_sobe, osobe)
+    elif chosen_option == '3':
+        print("Check occupied dates")
         id_sobe = input("ID sobe: ")
         datum_pocetka = input("Datum pocetka boravka: ")
         datum_zavrsetka = input("Datum kraja boravka: ")
-        proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka)
-    elif izabrana_opcija == '4':
-        print("Osvezi raspolozivosti soba")
-        osvezi_raspolozivosti_soba()
-    elif izabrana_opcija == '5':
-        print("Zauzmi/Oslobodi sobu")
+        check_occupied_dates(id_sobe, datum_pocetka, datum_zavrsetka)
+    elif chosen_option == '4':
+        print("Refresh availability of the rooms")
+        refresh_availability_of_rooms()
+    elif chosen_option == '5':
+        print("Occupy/Free the room")
         id_sobe = int(input("ID sobe: "))
         zahtev = input("Zauzmi/Oslobodi: ")
-        zauzmi_oslobodi_sobu(id_sobe, zahtev)
-    elif izabrana_opcija == '6':
-        print("Dodaj rezervaciju")
+        occupy_free_the_room(id_sobe, zahtev)
+    elif chosen_option == '6':
+        print("Add reservation")
         id_sobe = int(input("ID sobe: "))
         broj_osoba = int(input("Broj osoba: "))
         datum_pocetka = input("Datum pocetka boravka: ")
         datum_zavrsetka = input("Datum kraja boravka: ")
-        dodaj_rezervaciju(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka)
-    elif izabrana_opcija == '7':
-        print("Obrisi rezervaciju")
+        add_reservation(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka)
+    elif chosen_option == '7':
+        print("Remove reservation")
         id_rezervacije = int(input("ID rezervacije: "))
-        obrisi_rezervaciju(id_rezervacije)
-    elif izabrana_opcija == '8':
-        print("Uvid u rezervacije")
+        remove_reservation(id_rezervacije)
+    elif chosen_option == '8':
+        print("View all reservations")
         print("[ID_Rez]  [Dat_Rez]   [Br_Osoba] [Zak_Dat_Poc]  [Zak_Dat_Zav]     [Rea_Dat_Poc]    [Rea_Dat_Zav] "
               "[ID_Sobe]")
-        sve_rezervacije()
-    elif izabrana_opcija == '9':
-        print("Prijava rezervacije")
+        all_reservations()
+    elif chosen_option == '9':
+        print("Check-in")
         broj_pasosa = int(input("Broj pasosa: "))
         id_sobe = int(input("ID sobe: "))
         telefon = str(input("Telefon: "))
         print("[id_gosta][br_pasosa]      [Ime]           [Prezime]      [id_sobe]      [telefon]")
-        prijava_rezervacije(broj_pasosa, id_sobe, telefon)
-    elif izabrana_opcija == '10':
-        print("Odjava rezervacije")
+        check_in(broj_pasosa, id_sobe, telefon)
+    elif chosen_option == '10':
+        print("Checkout")
         id_rezervacije = int(input("ID rezervacije: "))
-        odjava_rezervacije(id_rezervacije)
+        checkout(id_rezervacije)
     else:
-        print("Opcija ne postoji!")
+        print("Option does not exist!")
