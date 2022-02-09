@@ -8,7 +8,7 @@ connection = connect(host='localhost',
 mycursor = connection.cursor()
 
 
-def dodaj_gosta(broj_pasosa, ime, prezime):
+def add_guest(broj_pasosa, ime, prezime):
     mycursor.execute("INSERT INTO gosti(broj_pasosa, ime, prezime)"
                      "VALUES (%s, %s, %s)", (broj_pasosa, ime, prezime))
     connection.commit()
@@ -16,7 +16,7 @@ def dodaj_gosta(broj_pasosa, ime, prezime):
 
 
 # PROMENA BROJA RASPOLOZIVIH SOBA U KATEGORIJI (MENJA VREDNOST raspolozivo U TABELI kategorija_sobe)
-def osvezi_raspolozive_u_kat():
+def refresh_available_in_category():
     lista3 = []
     lista2 = []
     lista1 = []
@@ -39,8 +39,8 @@ def osvezi_raspolozive_u_kat():
 
 
 # ZAUZMI/OSLOBODI SOBU (MENJA VREDNOST raspoloziva U TABELI sobe), PROVERA RASPOLOZIVOSTI SOBE
-# POZIVA I FUNKCIJU osvezi_raspolozive_u_kat KOJA OSVEZI/PROMENI VREDNOST raspolozivo U kategorija_sobe
-def zauzmi_oslobodi_sobu(id_sobe, zahtev):
+# POZIVA I FUNKCIJU refresh_available_in_category KOJA OSVEZI/PROMENI VREDNOST raspolozivo U kategorija_sobe
+def occupy_free_the_room(id_sobe, zahtev):
     mycursor.execute("SELECT id_sobe FROM sobe")
     for i in mycursor:
         if i[0] != id_sobe:
@@ -54,7 +54,7 @@ def zauzmi_oslobodi_sobu(id_sobe, zahtev):
                 else:
                     mycursor.execute("UPDATE sobe SET raspoloziva = 0 WHERE id_sobe = %s", id_sobe)
                     connection.commit()
-                    osvezi_raspolozive_u_kat()
+                    refresh_available_in_category()
                     return "Zauzeo"
         elif i[0] == id_sobe and zahtev.lower() == "oslobodi":
             mycursor.execute("SELECT raspoloziva FROM sobe WHERE id_sobe = %s", id_sobe)
@@ -65,14 +65,14 @@ def zauzmi_oslobodi_sobu(id_sobe, zahtev):
                 else:
                     mycursor.execute("UPDATE sobe SET raspoloziva = 1 WHERE id_sobe = %s", id_sobe)
                     connection.commit()
-                    osvezi_raspolozive_u_kat()
+                    refresh_available_in_category()
                     return "Oslobodio"
         else:
             return -1
 
 
 # PROVERA KAPACITETA SOBE I BROJ ZAHTEVANIH OSOBA U SOBI
-def provera_kapaciteta(id_sobe, osobe):
+def check_capacity(id_sobe, osobe):
     mycursor.execute(f"SELECT broj_kreveta "
                      "FROM sobe AS s LEFT JOIN kategorija_sobe AS k "
                      "ON s.id_kategorije = k.id_kategorije WHERE s.id_sobe = %s", id_sobe)
@@ -84,7 +84,7 @@ def provera_kapaciteta(id_sobe, osobe):
 # PROVERA DA LI SE ZELJENI DATUM ZA REZERVACIJU SOBE NALAZI U OPSEGU VEC REZERVISANIH SOBA
 # ako je soba zauzeta tokom zeljenog termina vraca False
 # ako je soba slobodna tokom zeljenog termina vraca True
-def proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka):
+def check_occupied_dates(id_sobe, datum_pocetka, datum_zavrsetka):
     mycursor.execute("SELECT id_rezervacije, zakazani_datum_pocetka, zakazani_datum_zavrsetka FROM rezervacija "
                      "WHERE zakazani_datum_pocetka BETWEEN %s AND %s AND id_sobe = %s "
                      "OR zakazani_datum_zavrsetka BETWEEN %s AND %s AND id_sobe = %s "
@@ -106,7 +106,7 @@ def proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka):
 
 
 # ZAVISNOST RASPOLOZIVOSTI SOBE U ODNOSU NA TO DA LI JE id_sobe U rezervacija
-def osvezi_raspolozivosti_soba():
+def refresh_availability_of_rooms():
     sobe = []
     rezervisane = []
     nerezervisane = []
@@ -124,24 +124,24 @@ def osvezi_raspolozivosti_soba():
                 mycursor.execute("UPDATE sobe SET raspoloziva = 0 WHERE id_sobe = %s", rezervisana)
     for soba in nerezervisane:
         mycursor.execute("UPDATE sobe SET raspoloziva = 1 WHERE id_sobe = %s", soba)
-    osvezi_raspolozive_u_kat()
+    refresh_available_in_category()
     connection.commit()
     print("Raspolozivosti osvezene.")
 
 
 # DODAVANJE REZERVACIJE NAKON ISPUNJENIH USLOVA
-def dodaj_rezervaciju(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
-    if provera_kapaciteta(id_sobe, broj_osoba) is True:
-        if zauzmi_oslobodi_sobu(id_sobe, "zauzmi") != "vec_zauzeta" or \
-                zauzmi_oslobodi_sobu(id_sobe, "zauzmi") == "vec_zauzeta" and \
-                proveri_termine_sobe(id_sobe, datum_pocetka, datum_zavrsetka) is True:
+def add_reservation(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
+    if check_capacity(id_sobe, broj_osoba) is True:
+        if occupy_free_the_room(id_sobe, "zauzmi") != "vec_zauzeta" or \
+                occupy_free_the_room(id_sobe, "zauzmi") == "vec_zauzeta" and \
+                check_occupied_dates(id_sobe, datum_pocetka, datum_zavrsetka) is True:
             mycursor.execute("INSERT INTO rezervacija(id_sobe, datum_rezervacije, broj_osoba,"
                              " zakazani_datum_pocetka, zakazani_datum_zavrsetka)"
                              "VALUES (%s,CURRENT_DATE(),%s,%s,%s)",
                              (id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka))
             print("Rezervacija dodata.")
-            osvezi_raspolozive_u_kat()
-            osvezi_raspolozivosti_soba()
+            refresh_available_in_category()
+            refresh_availability_of_rooms()
             connection.commit()
         else:
             print("Rezervacije odbijena.")
@@ -149,16 +149,16 @@ def dodaj_rezervaciju(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
         print("nema mesta u sobi.")
 
 
-def obrisi_rezervaciju(id_rezervacije):
+def remove_reservation(id_rezervacije):
     mycursor.execute("SELECT id_sobe FROM rezervacija WHERE id_rezervacije=%s", id_rezervacije)
     mycursor.execute("DELETE FROM rezervacija WHERE id_rezervacije=%s", id_rezervacije)
-    osvezi_raspolozivosti_soba()
-    osvezi_raspolozive_u_kat()
+    refresh_availability_of_rooms()
+    refresh_available_in_category()
     connection.commit()
     print("Rezervacija obrisana.")
 
 
-def sve_rezervacije():
+def all_reservations():
     mycursor.execute("SELECT * FROM rezervacija")
     for rezervacija in mycursor:
         for data in range(8):
@@ -166,7 +166,7 @@ def sve_rezervacije():
         print("\n")
 
 
-def prijava_rezervacije(broj_pasosa, id_sobe, telefon):
+def check_in(broj_pasosa, id_sobe, telefon):
     mycursor.execute("SELECT * FROM gosti WHERE broj_pasosa = %s", broj_pasosa)
     id_gosta = None
     id_rezervacije = None
@@ -193,7 +193,7 @@ def prijava_rezervacije(broj_pasosa, id_sobe, telefon):
         print("Nepravilno uneti podaci gosta")
 
 
-def odjava_rezervacije(id_rezervacije):
+def checkout(id_rezervacije):
     mycursor.execute("SELECT id_rezervacije FROM osobe_u_rezervaciji")
     for i in mycursor:
         if i[0] == id_rezervacije:
