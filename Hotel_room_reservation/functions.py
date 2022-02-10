@@ -8,199 +8,199 @@ connection = connect(host='localhost',
 mycursor = connection.cursor()
 
 
-def add_guest(broj_pasosa, ime, prezime):
+def add_guest(passport_serial_number, name, surname):
     mycursor.execute("INSERT INTO guests(passport_serial_number, name, surname)"
-                     "VALUES (%s, %s, %s)", (broj_pasosa, ime, prezime))
+                     "VALUES (%s, %s, %s)", (passport_serial_number, name, surname))
     connection.commit()
-    print(f"Gost {ime} {prezime} uspesno dodat.")
+    print(f"Guest {name} {surname} added successfully.")
 
 
 # PROMENA BROJA RASPOLOZIVIH SOBA U KATEGORIJI (MENJA VREDNOST raspolozivo U TABELI room_categories)
 def refresh_available_in_category():
-    lista3 = []
-    lista2 = []
-    lista1 = []
+    list3 = []
+    list2 = []
+    list1 = []
     mycursor.execute("SELECT room_id FROM rooms WHERE available = 1 AND category_id = 3")
     for i in mycursor:
-        lista3.append(i)
-    slobodne3 = len(lista3)
+        list3.append(i)
+    free_rooms3 = len(list3)
     mycursor.execute("SELECT room_id FROM rooms WHERE available = 1 AND category_id = 2")
     for i in mycursor:
-        lista2.append(i)
-    slobodne2 = len(lista2)
+        list2.append(i)
+    free_rooms2 = len(list2)
     mycursor.execute("SELECT room_id FROM rooms WHERE available = 1 AND category_id = 1")
     for i in mycursor:
-        lista1.append(i)
-    slobodne1 = len(lista1)
-    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 3", slobodne3)
-    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 2", slobodne2)
-    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 1", slobodne1)
+        list1.append(i)
+    free_rooms1 = len(list1)
+    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 3", free_rooms3)
+    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 2", free_rooms2)
+    mycursor.execute("UPDATE room_categories SET available = %s WHERE category_id = 1", free_rooms1)
     connection.commit()
 
 
 # ZAUZMI/OSLOBODI SOBU (MENJA VREDNOST raspoloziva U TABELI sobe), PROVERA RASPOLOZIVOSTI SOBE
 # POZIVA I FUNKCIJU refresh_available_in_category KOJA OSVEZI/PROMENI VREDNOST raspolozivo U room_categories
-def occupy_free_the_room(id_sobe, zahtev):
+def occupy_free_the_room(room_id, request):
     mycursor.execute("SELECT room_id FROM rooms")
     for i in mycursor:
-        if i[0] != id_sobe:
+        if i[0] != room_id:
             pass
-        elif i[0] == id_sobe and zahtev.lower() == "zauzmi":
-            mycursor.execute("SELECT available FROM rooms WHERE room_id = %s", id_sobe)
+        elif i[0] == room_id and request.lower() == "occupy":
+            mycursor.execute("SELECT available FROM rooms WHERE room_id = %s", room_id)
             for j in mycursor:
                 if j[0] == 0:
-                    print("Soba je vec zauzeta!")
-                    return "vec_zauzeta"
+                    print("Room already occupied")
+                    return "already_occupied"
                 else:
-                    mycursor.execute("UPDATE rooms SET available = 0 WHERE room_id = %s", id_sobe)
+                    mycursor.execute("UPDATE rooms SET available = 0 WHERE room_id = %s", room_id)
                     connection.commit()
                     refresh_available_in_category()
-                    return "Zauzeo"
-        elif i[0] == id_sobe and zahtev.lower() == "oslobodi":
-            mycursor.execute("SELECT available FROM rooms WHERE room_id = %s", id_sobe)
+                    return "occupation_successful"
+        elif i[0] == room_id and request.lower() == "free":
+            mycursor.execute("SELECT available FROM rooms WHERE room_id = %s", room_id)
             for j in mycursor:
                 if j[0] == 1:
-                    print("Soba je vec slobodna!")
-                    return "vec_slobodna"
+                    print("Room already free")
+                    return "already_free"
                 else:
-                    mycursor.execute("UPDATE rooms SET available = 1 WHERE room_id = %s", id_sobe)
+                    mycursor.execute("UPDATE rooms SET available = 1 WHERE room_id = %s", room_id)
                     connection.commit()
                     refresh_available_in_category()
-                    return "Oslobodio"
+                    return "freeing_successful"
         else:
             return -1
 
 
 # PROVERA KAPACITETA SOBE I BROJ ZAHTEVANIH OSOBA U SOBI
-def check_capacity(id_sobe, osobe):
+def check_capacity(room_id, num_of_guests):
     mycursor.execute(f"SELECT num_of_beds "
                      "FROM rooms AS r LEFT JOIN room_categories AS rc "
-                     "ON r.category_id = rc.category_id WHERE r.room_id = %s", id_sobe)
-    kapacitet = mycursor.fetchone()[0]
-    print(f"Ova soba poseduje {kapacitet} kreveta")
-    return osobe <= kapacitet
+                     "ON r.category_id = rc.category_id WHERE r.room_id = %s", room_id)
+    capacity = mycursor.fetchone()[0]
+    print(f"This room contains {capacity} beds")
+    return num_of_guests <= capacity
 
 
 # PROVERA DA LI SE ZELJENI DATUM ZA REZERVACIJU SOBE NALAZI U OPSEGU VEC REZERVISANIH SOBA
 # ako je soba zauzeta tokom zeljenog termina vraca False
 # ako je soba slobodna tokom zeljenog termina vraca True
-def check_occupied_dates(id_sobe, datum_pocetka, datum_zavrsetka):
+def check_occupied_dates(room_id, beginning_date, ending_date):
     mycursor.execute("SELECT reservation_id, reservation_beginning_date, reservation_ending_date FROM reservations "
                      "WHERE reservation_beginning_date BETWEEN %s AND %s AND room_id = %s "
                      "OR reservation_ending_date BETWEEN %s AND %s AND room_id = %s "
                      "OR %s BETWEEN reservation_beginning_date AND reservation_ending_date AND room_id = %s "
                      "OR %s BETWEEN reservation_beginning_date AND reservation_ending_date AND room_id = %s"
-                     , (datum_pocetka, datum_zavrsetka, id_sobe, datum_pocetka, datum_zavrsetka, id_sobe, datum_pocetka,
-                        id_sobe, datum_zavrsetka, id_sobe))
-    rezultati = 0
+                     , (beginning_date, ending_date, room_id, beginning_date, ending_date, room_id, beginning_date,
+                        room_id, ending_date, room_id))
+    results = 0
     for i in mycursor:
-        rezultati += 1
-        if rezultati > 0:
-            print(f"Soba: {id_sobe} je zauzeta | OD: {i[1]} | DO: {i[2]} ---- ID_Rezervacije: {i[0]}")
+        results += 1
+        if results > 0:
+            print(f"Room: {room_id} is occupied in period | OF: {i[1]} | TO: {i[2]} ---- Reservation ID: {i[0]}")
         else:
-            print(f"Soba: {id_sobe} je slobodna za rezervaciju u terminu | OD: {datum_pocetka} | DO: {datum_zavrsetka}")
-    if rezultati > 0:
+            print(f"The room: {room_id} is free in period | OF: {beginning_date} | TO: {ending_date}")
+    if results > 0:
         return False
     else:
         return True
 
 
-# ZAVISNOST RASPOLOZIVOSTI SOBE U ODNOSU NA TO DA LI JE id_sobe U rezervacija
+# ZAVISNOST RASPOLOZIVOSTI SOBE U ODNOSU NA TO DA LI JE room_id U rezervacija
 def refresh_availability_of_rooms():
-    sobe = []
-    rezervisane = []
-    nerezervisane = []
+    rooms = []
+    reserved = []
+    non_reserved = []
     mycursor.execute("SELECT room_id FROM rooms ORDER BY room_id DESC")
     for i in mycursor:
-        sobe.append(i[0])
+        rooms.append(i[0])
     mycursor.execute("SELECT room_id FROM reservations ORDER BY room_id DESC")
     for i in mycursor:
-        rezervisane.append(i[0])
-    for soba in sobe:
-        if soba in sobe and soba not in rezervisane:
-            nerezervisane.append(soba)
+        reserved.append(i[0])
+    for room in rooms:
+        if room in rooms and room not in reserved:
+            non_reserved.append(room)
         else:
-            for rezervisana in rezervisane:
-                mycursor.execute("UPDATE rooms SET available = 0 WHERE room_id = %s", rezervisana)
-    for soba in nerezervisane:
-        mycursor.execute("UPDATE rooms SET available = 1 WHERE room_id = %s", soba)
+            for reserved_room in reserved:
+                mycursor.execute("UPDATE rooms SET available = 0 WHERE room_id = %s", reserved_room)
+    for non_reserved_room in non_reserved:
+        mycursor.execute("UPDATE rooms SET available = 1 WHERE room_id = %s", non_reserved_room)
     refresh_available_in_category()
     connection.commit()
-    print("Raspolozivosti osvezene.")
+    print("Availabilities refreshed.")
 
 
 # DODAVANJE REZERVACIJE NAKON ISPUNJENIH USLOVA
-def add_reservation(id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka):
-    if check_capacity(id_sobe, broj_osoba) is True:
-        if occupy_free_the_room(id_sobe, "zauzmi") != "vec_zauzeta" or \
-                occupy_free_the_room(id_sobe, "zauzmi") == "vec_zauzeta" and \
-                check_occupied_dates(id_sobe, datum_pocetka, datum_zavrsetka) is True:
+def add_reservation(room_id, num_of_guests, beginning_date, ending_date):
+    if check_capacity(room_id, num_of_guests) is True:
+        if occupy_free_the_room(room_id, "occupy") != "already_occupied" or \
+                occupy_free_the_room(room_id, "occupy") == "already_occupied" and \
+                check_occupied_dates(room_id, beginning_date, ending_date) is True:
             mycursor.execute("INSERT INTO reservations(room_id, reservation_date, num_of_guests,"
                              " reservation_beginning_date, reservation_ending_date)"
                              "VALUES (%s,CURRENT_DATE(),%s,%s,%s)",
-                             (id_sobe, broj_osoba, datum_pocetka, datum_zavrsetka))
-            print("Rezervacija dodata.")
+                             (room_id, num_of_guests, beginning_date, ending_date))
+            print("Reservation added successfully.")
             refresh_available_in_category()
             refresh_availability_of_rooms()
             connection.commit()
         else:
-            print("Rezervacije odbijena.")
+            print("Reservation declined")
     else:
-        print("nema mesta u sobi.")
+        print("Not enough beds in the room for reservation")
 
 
-def remove_reservation(id_rezervacije):
-    mycursor.execute("SELECT room_id FROM reservations WHERE reservation_id=%s", id_rezervacije)
-    mycursor.execute("DELETE FROM reservations WHERE reservation_id=%s", id_rezervacije)
+def remove_reservation(reservation_id):
+    mycursor.execute("SELECT room_id FROM reservations WHERE reservation_id=%s", reservation_id)
+    mycursor.execute("DELETE FROM reservations WHERE reservation_id=%s", reservation_id)
     refresh_availability_of_rooms()
     refresh_available_in_category()
     connection.commit()
-    print("Rezervacija obrisana.")
+    print("Reservation removed successfully")
 
 
 def all_reservations():
     mycursor.execute("SELECT * FROM reservations")
-    for rezervacija in mycursor:
+    for reservation in mycursor:
         for data in range(8):
-            print(rezervacija[data], end="       ")
+            print(reservation[data], end="       ")
         print("\n")
 
 
-def check_in(broj_pasosa, id_sobe, telefon):
-    mycursor.execute("SELECT * FROM guests WHERE passport_serial_number = %s", broj_pasosa)
-    id_gosta = None
-    id_rezervacije = None
-    ime = ""
-    prezime = ""
+def check_in(passport_serial_number, room_id, phone_number):
+    mycursor.execute("SELECT * FROM guests WHERE passport_serial_number = %s", passport_serial_number)
+    guest_id = None
+    reservation_id = None
+    name = ""
+    surname = ""
+    for data in mycursor:
+        guest_id = data[0]
+        name = data[2]
+        surname = data[3]
+        for i in data:
+            print(i, end="           ")
+    mycursor.execute("SELECT reservation_id FROM reservations WHERE room_id = %s", room_id)
     for i in mycursor:
-        id_gosta = i[0]
-        ime = i[2]
-        prezime = i[3]
-        for j in i:
-            print(j, end="           ")
-    mycursor.execute("SELECT reservation_id FROM reservations WHERE room_id = %s", id_sobe)
-    for i in mycursor:
-        print(i[0], "       ", telefon)
-        id_rezervacije = i[0]
-    if id_gosta is not None and id_rezervacije is not None:
+        print(i[0], "       ", phone_number)
+        reservation_id = i[0]
+    if guest_id is not None and reservation_id is not None:
         mycursor.execute("INSERT INTO checked_in_reservations(guest_id, contact_person, reservation_id, phone_number)"
-                         " VALUES(%s, %s, %s, %s)", (id_gosta, broj_pasosa, id_rezervacije, telefon))
+                         " VALUES(%s, %s, %s, %s)", (guest_id, passport_serial_number, reservation_id, phone_number))
         mycursor.execute("UPDATE reservations SET check_in_date = CURRENT_DATE()"
-                         "WHERE reservation_id=%s", id_rezervacije)
+                         "WHERE reservation_id=%s", reservation_id)
         connection.commit()
-        print(f"Rezervacija gosta {ime} {prezime} je uspesno prijavljena.")
+        print(f"Reservation of guest {name} {surname} is checked-in successfully.")
     else:
-        print("Nepravilno uneti podaci gosta")
+        print("Invalid guest data.")
 
 
-def checkout(id_rezervacije):
+def checkout(reservation_id):
     mycursor.execute("SELECT reservation_id FROM checked_in_reservations")
-    for i in mycursor:
-        if i[0] == id_rezervacije:
-            mycursor.execute("DELETE FROM checked_in_reservations WHERE reservation_id = %s", id_rezervacije)
+    for reservation in mycursor:
+        if reservation[0] == reservation_id:
+            mycursor.execute("DELETE FROM checked_in_reservations WHERE reservation_id = %s", reservation_id)
             mycursor.execute("UPDATE reservations SET checkout_date = CURRENT_DATE()"
-                             "WHERE reservation_id=%s", id_rezervacije)
+                             "WHERE reservation_id=%s", reservation_id)
             connection.commit()
         else:
-            print("ID rezervacije nije pronadjen.")
-    print("Rezervacija uspesno odjavljena")
+            print("Reservation ID not found.")
+    print("Reservation checked out successfully.")
